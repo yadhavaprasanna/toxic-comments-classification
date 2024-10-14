@@ -27,6 +27,10 @@ model_name=st.secrets["MODEL_NAME"]
 genai.configure(api_key=api_keyy)
 model = genai.GenerativeModel(model_name=model_name)
 
+# genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+# model = genai.GenerativeModel(model_name=os.getenv("MODEL_NAME"))
+
+
 nltk.download('stopwords')
 
 # Define your text processing functions
@@ -88,7 +92,7 @@ def make_prediction(query):
     preprocessed_query = preprocess(query)
     loaded_model = load_model('lstm_toxicity_model_epoch_8.keras')
     predictions_prob = loaded_model.predict(preprocessed_query)
-    predictions = (predictions_prob > 0.5).astype(int)[0]
+    predictions = (predictions_prob > 0.3).astype(int)[0]
     return predictions, predictions_prob[0]
 
 def extract_list(llm_generated_words):
@@ -101,19 +105,14 @@ def extract_list(llm_generated_words):
     return ["Clean"]
 
 def gemini_extract_word(inputtext, labels):
-    # return """hi ["hello","hi"]"""
-    print("me")
-    print(inputtext)
-    print("==============")
-    print(labels)
-    # inputtext="am good and super"
     system_message = """You’re a highly skilled text processing AI specializing in natural language understanding and extraction tasks. Your expertise lies in accurately identifying and extracting relevant words or phrases from given texts based on specified labels.
 Your task is to extract words from a provided text that are related to a specified label and return the answer in a Python list format only, with no additional text or explanation.
 Make sure to focus solely on the relevant words associated with the provided label, and return them in a list format like this: `["word1", "word2", ...]`.
 Input Text:{}
 Predicted Label:{}"""
-    print("inside extraction")
+    
     try:
+        print("inside extraction")
         prompt=system_message.format(inputtext,labels)
         response = model.generate_content(prompt,
                                       safety_settings=[
@@ -139,10 +138,10 @@ Predicted Label:{}"""
             },
         ])
         print("outside extraction")
-        return response.text
+        return 0,response.text
     except Exception as e:
-        print("")
-        return """We apologize for the inconvenience. There was an issue while communicating with the Google API for WordCloud. 
+        
+        return 1,"""We apologize for the inconvenience. There was an issue while communicating with the Google API for WordCloud. 
               Please try again or retry after some time. Thank you for your understanding."""
 
 def gemini_explanation(inputtext,labels):
@@ -181,24 +180,26 @@ Predicted Label:{}
             },
         ])
         print("outside explanation")
-        return response.text
+        return 0,response.text
     except Exception as e:
         print("")
-        return """We apologize for the inconvenience. There was an issue while communicating with the Google API for LLM Explanation. 
+        return 1,"""We apologize for the inconvenience. There was an issue while communicating with the Google API for LLM Explanation. 
               Please try again or retry after some time. Thank you for your understanding."""
 
 def extract_words_llm(query, llm_labels, prediction):
     if 1 not in prediction:
-        return "NO toxic in text, it's clean!",["Clean"]
+        return 3,"The text has been evaluated and determined to be free of any toxic content. It is clean!",0,["Clean"]
     
-    llm_explanation = gemini_explanation(query, llm_labels)
-    llm_extracted_words = gemini_extract_word(query, llm_labels)
-    word_list=extract_list(llm_extracted_words)
-    return llm_explanation, word_list
+    explain_status,llm_explanation = gemini_explanation(query, llm_labels)
+    status,llm_extracted_words = gemini_extract_word(query, llm_labels)
+    if status==0:
+        word_list=extract_list(llm_extracted_words)
+        return explain_status,llm_explanation, status,word_list
+    return explain_status,llm_explanation, status,llm_extracted_words
 
 def generate_wordcloud(words):
     text = ' '.join(words)
-    wordcloud = WordCloud(color_func=lambda *args, **kwargs: "red").generate(text)
+    wordcloud = WordCloud().generate(text)
     wordcloud_path = "wordcloud_red.png"
     wordcloud.to_file(wordcloud_path) 
     return wordcloud_path
@@ -214,6 +215,9 @@ def main():
     selected_model = st.selectbox("Please Choose a Model:", model_options)
 
     if st.button("Analyze"):
+        if not query:
+            st.error("Please provide your comment for further analysis")
+            return
         labels = ['Toxic', 'Severe Toxic', 'Obscene', 'Threat', 'Insult', 'Identity Hate']
 
         if selected_model=="Pretrained Bert Detoxify":
@@ -237,7 +241,7 @@ def main():
                 formatted_results["Clean"]=[1,"100%"]
             print("hi")
             print(formatted_results)
-            llm_explanation, llm_extracted_words = extract_words_llm(query, llm_labels, detoxify_prediction)
+            explain_status,llm_explanation, status,llm_extracted_words = extract_words_llm(query, llm_labels, detoxify_prediction)
             labels = list(formatted_results.keys())
             predictions = [result[0] for result in formatted_results.values()]
             probabilities = [int(result[1][:-1].replace("%","")) for result in formatted_results.values()]  # Convert percentage string to int
@@ -280,13 +284,25 @@ def main():
             json_results = {label: {'Prediction': pred[0], 'Probability': pred[1]} for label, pred in formatted_results.items()}
             with st.expander("Show Results in JSON", expanded=False):
                 st.json(json_results)
-            st.subheader("LLM Explanation")
-            st.write(llm_explanation)
+
+            if explain_status==0:
+                st.subheader("LLM Explanation")
+                st.write(llm_explanation)
+            else:
+                st.subheader("LLM Explanation")
+                if explain_status==1:
+                    st.info(llm_explanation)
+                elif explain_status==3:
+                    st.markdown(f'<div style="background-color: #d4edda; color: #155724; padding: 10px; border-radius: 5px; border: 1px solid #c3e6cb;">{llm_explanation}</div>', unsafe_allow_html=True)
+                    
         
-            if llm_extracted_words:
+            if status==0:
                 wordcloud_path = generate_wordcloud(llm_extracted_words)
                 st.subheader("Word Cloud of Extracted Words")
                 st.image(wordcloud_path, caption="")
+            else:
+                st.subheader("Word Cloud of Extracted Words")
+                st.info(llm_extracted_words)
 
 
             # st.title("Download Existing PDF")
@@ -315,7 +331,7 @@ def main():
    
 
             print(formatted_results)
-            llm_explanation, llm_extracted_words = extract_words_llm(query, llm_labels, detoxify_prediction)
+            explain_status,llm_explanation,status, llm_extracted_words = extract_words_llm(query, llm_labels, detoxify_prediction)
             labels = list(formatted_results.keys())
             predictions = [result[0] for result in formatted_results.values()]
             probabilities = [int(result[1][:-1].replace("%","")) for result in formatted_results.values()]  # Convert percentage string to int
@@ -358,13 +374,26 @@ def main():
             json_results = {label: {'Prediction': pred[0], 'Probability': pred[1]} for label, pred in formatted_results.items()}
             with st.expander("Show Results in JSON", expanded=False):
                 st.json(json_results)
-            st.subheader("LLM Explanation")
-            st.write(llm_explanation)
+
+            if explain_status==0:
+                st.subheader("LLM Explanation")
+                st.write(llm_explanation)
+            else:
+                st.subheader("LLM Explanation")
+                if explain_status==1:
+                    st.info(llm_explanation)
+                elif explain_status==3:
+                    st.markdown(f'<div style="background-color: #d4edda; color: #155724; padding: 10px; border-radius: 5px; border: 1px solid #c3e6cb;">{llm_explanation}</div>', unsafe_allow_html=True)
+                    
         
-            if llm_extracted_words:
+
+            if status==0:
                 wordcloud_path = generate_wordcloud(llm_extracted_words)
                 st.subheader("Word Cloud of Extracted Words")
                 st.image(wordcloud_path, caption="")
+            else:
+                st.subheader("Word Cloud of Extracted Words")
+                st.info(llm_extracted_words)
 
 
             # st.title("Download Existing PDF")
