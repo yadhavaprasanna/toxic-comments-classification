@@ -18,11 +18,14 @@ import matplotlib.pyplot as plt
 from detoxify import Detoxify
 import google.generativeai as genai
 from google.generativeai.types import HarmCategory, HarmBlockThreshold
-from dotenv import load_dotenv
-load_dotenv()
+# from dotenv import load_dotenv
+# load_dotenv()
 
-genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
-model = genai.GenerativeModel(model_name=os.getenv("MODEL_NAME"))
+api_keyy=st.secrets["GOOGLE_API_KEY"]
+model_name=st.secrets["MODEL_NAME"]
+
+genai.configure(api_key=api_keyy)
+model = genai.GenerativeModel(model_name=model_name)
 
 nltk.download('stopwords')
 
