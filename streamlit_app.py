@@ -34,17 +34,17 @@ model = genai.GenerativeModel(model_name=model_name)
 # model = genai.GenerativeModel(model_name=os.getenv("MODEL_NAME"))
 
 data_keys={
-  "type": ,
-  "project_id":,
-  "private_key_id": ,
-  "private_key": ,
-  "client_email": ,
-  "client_id": ,
-  "auth_uri": ,
-  "token_uri": ,
-  "auth_provider_x509_cert_url": ,
-  "client_x509_cert_url": ,
-  "universe_domain": 
+  "type":st.secrets["type"] ,
+  "project_id":st.secrets["project_id"],
+  "private_key_id":st.secrets["private_key_id"] ,
+  "private_key":st.secrets["private_key"] ,
+  "client_email":st.secrets["client_email"] ,
+  "client_id":st.secrets["client_id"] ,
+  "auth_uri": st.secrets["auth_uri"],
+  "token_uri": st.secrets["token_uri"],
+  "auth_provider_x509_cert_url":st.secrets["auth_provider_x509_cert_url"] ,
+  "client_x509_cert_url":st.secrets["client_x509_cert_url"] ,
+  "universe_domain": st.secrets["universe_domain"]
 }
 
 file_path_data_key = 'service_account.json'
@@ -52,15 +52,15 @@ file_path_data_key = 'service_account.json'
 with open(file_path_data_key, 'w') as json_file:
     json.dump(data_keys, json_file)
 
-# try:
-#     app = firebase_admin.get_app()
-#     print("yes")
-# except ValueError as e:
-cred = credentials.Certificate("service_account.json")  
-firebase_admin.initialize_app(cred, {
-    'storageBucket': 'toxicity-bbb88.appspot.com' 
-})
-print("no")
+try:
+    app = firebase_admin.get_app()
+    print("yes")
+except ValueError as e:
+    cred = credentials.Certificate("service_account.json")  
+    firebase_admin.initialize_app(cred, {
+        'storageBucket': 'toxicitydatastore.appspot.com' 
+    })
+    print("no")
     
 nltk.download('stopwords')
 def remove_URL(text):
@@ -233,7 +233,7 @@ def generate_wordcloud(words):
 def make_entry(new_entry,id):
     bucket = storage.bucket()
     try:
-        blob = bucket.blob("toxicity_db/toxicity_db.json")
+        blob = bucket.blob("toxicity_db.json")
         json_data = blob.download_as_text()
         data = json.loads(json_data) 
         if id not in data:
