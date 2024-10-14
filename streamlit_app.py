@@ -57,11 +57,11 @@ with open(file_path_data_key, 'w') as json_file:
 #     print("yes")
 # except ValueError as e:
 
-cred = credentials.Certificate("service_account.json")  
-firebase_admin.initialize_app(cred, {
-    'storageBucket': 'toxicitydatastore.appspot.com' 
-},name="toxicitydatastore")
-print("no")
+# cred = credentials.Certificate("service_account.json")  
+# firebase_admin.initialize_app(cred, {
+#     'storageBucket': 'toxicitydatastore.appspot.com' 
+# },name="toxicitydatastore")
+# print("no")
     
 nltk.download('stopwords')
 def remove_URL(text):
