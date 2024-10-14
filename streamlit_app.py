@@ -49,7 +49,7 @@ data_keys={
 
 file_path_data_key = 'service_account.json'
 
-with open(file_path, 'w') as json_file:
+with open(file_path_data_key, 'w') as json_file:
     json.dump(data_keys, json_file)
 
 # try:
