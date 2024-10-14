@@ -18,8 +18,6 @@ import matplotlib.pyplot as plt
 from detoxify import Detoxify
 import google.generativeai as genai
 from google.generativeai.types import HarmCategory, HarmBlockThreshold
-import firebase_admin
-from firebase_admin import credentials, storage
 import json
 # from dotenv import load_dotenv
 # load_dotenv()
@@ -33,35 +31,6 @@ model = genai.GenerativeModel(model_name=model_name)
 # genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 # model = genai.GenerativeModel(model_name=os.getenv("MODEL_NAME"))
 
-data_keys={
-  "type":st.secrets["type"] ,
-  "project_id":st.secrets["project_id"],
-  "private_key_id":st.secrets["private_key_id"] ,
-  "private_key":st.secrets["private_key"] ,
-  "client_email":st.secrets["client_email"] ,
-  "client_id":st.secrets["client_id"] ,
-  "auth_uri": st.secrets["auth_uri"],
-  "token_uri": st.secrets["token_uri"],
-  "auth_provider_x509_cert_url":st.secrets["auth_provider_x509_cert_url"] ,
-  "client_x509_cert_url":st.secrets["client_x509_cert_url"] ,
-  "universe_domain": st.secrets["universe_domain"]
-}
-
-file_path_data_key = 'service_account.json'
-
-with open(file_path_data_key, 'w') as json_file:
-    json.dump(data_keys, json_file)
-
-# try:
-#     app = firebase_admin.get_app()
-#     print("yes")
-# except ValueError as e:
-
-# cred = credentials.Certificate("service_account.json")  
-# firebase_admin.initialize_app(cred, {
-#     'storageBucket': 'toxicitydatastore.appspot.com' 
-# },name="toxicitydatastore")
-# print("no")
     
 nltk.download('stopwords')
 def remove_URL(text):
@@ -378,8 +347,8 @@ def main():
             "feedback":"-1"
         }
 
-        db_result=make_entry(new_entry,id)
-        st.subheader(db_result)
+        # db_result=make_entry(new_entry,id)
+        # st.subheader(db_result)
 
      
 if __name__ == "__main__":
