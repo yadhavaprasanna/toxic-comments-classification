@@ -37,7 +37,7 @@ try:
     app = firebase_admin.get_app()
     print("yes")
 except ValueError as e:
-    cred = credentials.Certificate("toxicity-bbb88-firebase-adminsdk-js85g-10afd15685.json")  
+    cred = credentials.Certificate("toxicity-bbb88-firebase-adminsdk-js85g-2ba629b0e4.json")  
     firebase_admin.initialize_app(cred, {
         'storageBucket': 'toxicity-bbb88.appspot.com' 
     })
