@@ -223,11 +223,11 @@ def make_entry(new_entry):
         json_data = json.dumps(data, indent=4)
         blob.upload_from_string(json_data, content_type='application/json')
         print("Values stored successfully in Firebase Storage as JSON!")
-        return True
+        return "Values stored successfully in Firebase Storage as JSON!"
     except Exception as e:
         print("An error occurred: {e}")
         print("error in updating DB")
-        return False
+        return "error in updating DB"
 
 def main():
     id=random.randint(10000, 99999)     
@@ -359,7 +359,7 @@ def main():
         }
 
         db_result=make_entry(new_entry)
-        print(db_result)
+        st.subheader(db_result)
 
      
 if __name__ == "__main__":
