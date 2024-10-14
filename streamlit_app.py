@@ -200,23 +200,23 @@ def generate_wordcloud(words):
     wordcloud.to_file(wordcloud_path) 
     return wordcloud_path
 
-def make_entry(new_entry,id):
-    bucket = storage.bucket()
-    try:
-        blob = bucket.blob("toxicity_db.json")
-        json_data = blob.download_as_text()
-        data = json.loads(json_data) 
-        if id not in data:
-            data[id] = []  
-        data[id].append(new_entry)
-        json_data = json.dumps(data, indent=4)
-        blob.upload_from_string(json_data, content_type='application/json')
-        print("Values stored successfully in Firebase Storage as JSON!")
-        return "Values stored successfully in Firebase Storage as JSON!"
-    except Exception as e:
-        print("An error occurred: {e}")
-        print("error in updating DB")
-        return e
+# def make_entry(new_entry,id):
+#     bucket = storage.bucket()
+#     try:
+#         blob = bucket.blob("toxicity_db.json")
+#         json_data = blob.download_as_text()
+#         data = json.loads(json_data) 
+#         if id not in data:
+#             data[id] = []  
+#         data[id].append(new_entry)
+#         json_data = json.dumps(data, indent=4)
+#         blob.upload_from_string(json_data, content_type='application/json')
+#         print("Values stored successfully in Firebase Storage as JSON!")
+#         return "Values stored successfully in Firebase Storage as JSON!"
+#     except Exception as e:
+#         print("An error occurred: {e}")
+#         print("error in updating DB")
+#         return e
 
 def main():
     id=random.randint(10000, 99999)     
