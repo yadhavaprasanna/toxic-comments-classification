@@ -1,0 +1,15 @@
+streamlit
+google-generativeai
+python-dotenv
+pypdf
+PyPDF2
+pandas
+wordcloud
+emoji
+contractions
+matplotlib
+nltk
+detoxify
+demoji
+tensorflow
+numpy
