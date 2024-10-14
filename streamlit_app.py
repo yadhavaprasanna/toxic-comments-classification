@@ -2,7 +2,7 @@ import pandas as pd
 import string
 import emoji
 import demoji
-import re
+import re,random
 import contractions
 import nltk
 import pickle
@@ -18,6 +18,9 @@ import matplotlib.pyplot as plt
 from detoxify import Detoxify
 import google.generativeai as genai
 from google.generativeai.types import HarmCategory, HarmBlockThreshold
+import firebase_admin
+from firebase_admin import credentials, storage
+import json
 # from dotenv import load_dotenv
 # load_dotenv()
 
@@ -30,10 +33,17 @@ model = genai.GenerativeModel(model_name=model_name)
 # genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 # model = genai.GenerativeModel(model_name=os.getenv("MODEL_NAME"))
 
-
+try:
+    app = firebase_admin.get_app()
+    print("yes")
+except ValueError as e:
+    cred = credentials.Certificate("toxicity-bbb88-firebase-adminsdk-js85g-10afd15685.json")  
+    firebase_admin.initialize_app(cred, {
+        'storageBucket': 'toxicity-bbb88.appspot.com' 
+    })
+    print("no")
+    
 nltk.download('stopwords')
-
-# Define your text processing functions
 def remove_URL(text):
     return re.sub(r"https?://\S+|www\.\S+", "", text)
 
@@ -110,13 +120,12 @@ Your task is to extract words from a provided text that are related to a specifi
 Make sure to focus solely on the relevant words associated with the provided label, and return them in a list format like this: `["word1", "word2", ...]`.
 Input Text:{}
 Predicted Label:{}"""
-    
     try:
         print("inside extraction")
         prompt=system_message.format(inputtext,labels)
         response = model.generate_content(prompt,
                                       safety_settings=[
-            {
+{
                 "category": "HARM_CATEGORY_DANGEROUS",
                 "threshold": "BLOCK_NONE",
             },
@@ -145,7 +154,6 @@ Predicted Label:{}"""
               Please try again or retry after some time. Thank you for your understanding."""
 
 def gemini_explanation(inputtext,labels):
-    # return "hi"
     system_message = """ You’re a knowledgeable AI model evaluator with extensive experience in analyzing prediction models and their outputs. Your expertise lies in providing clear, insightful explanations for why a model has assigned a particular labels (labels are separated by commas) to a specific text, considering factors such as context, keywords, and overall sentiment.
 Your task is to explain the reasoning behind a label assigned by your prediction model. 
 NOTE **only extract the word from given input text is really mean to the given labels** 
@@ -189,7 +197,6 @@ Predicted Label:{}
 def extract_words_llm(query, llm_labels, prediction):
     if 1 not in prediction:
         return 3,"The text has been evaluated and determined to be free of any toxic content. It is clean!",0,["Clean"]
-    
     explain_status,llm_explanation = gemini_explanation(query, llm_labels)
     status,llm_extracted_words = gemini_extract_word(query, llm_labels)
     if status==0:
@@ -204,22 +211,37 @@ def generate_wordcloud(words):
     wordcloud.to_file(wordcloud_path) 
     return wordcloud_path
 
-# Streamlit App
+def make_entry(new_entry):
+    bucket = storage.bucket()
+    try:
+        blob = bucket.blob("toxicity_db/toxicity_db.json")
+        json_data = blob.download_as_text()
+        data = json.loads(json_data) 
+        if id not in data:
+            data[id] = []  
+        data[id].append(new_entry)
+        json_data = json.dumps(data, indent=4)
+        blob.upload_from_string(json_data, content_type='application/json')
+        print("Values stored successfully in Firebase Storage as JSON!")
+        return True
+    except Exception as e:
+        print("An error occurred: {e}")
+        print("error in updating DB")
+        return False
+
 def main():
+    id=random.randint(10000, 99999)     
+    analyze_icon = "🔍"
     st.title("Comment Toxicity Analyzer")
-
-    query = st.text_area("Enter comment to analyze:")
-
-        # Model selection
+    query = st.text_area("Enter your comment to analyze:")
     model_options = ["LSTM Model", "Pretrained Bert Detoxify"]
     selected_model = st.selectbox("Please Choose a Model:", model_options)
 
-    if st.button("Analyze"):
+    if st.button(f'{analyze_icon}  Analyze'):
         if not query:
             st.error("Please provide your comment for further analysis")
             return
         labels = ['Toxic', 'Severe Toxic', 'Obscene', 'Threat', 'Insult', 'Identity Hate']
-
         if selected_model=="Pretrained Bert Detoxify":
             print("entering BERT Detoxify")
             results = Detoxify('original').predict(query)
@@ -230,7 +252,6 @@ def main():
                 formatted_results[label] = [
                     0 if value <= 0.5 else 1, 
                     f"{int(value * 100)}%"]
-                
                 llm_labels = ""
                 detoxify_prediction=[]
                 for i, (label, result) in enumerate(formatted_results.items()):
@@ -246,76 +267,7 @@ def main():
             predictions = [result[0] for result in formatted_results.values()]
             probabilities = [int(result[1][:-1].replace("%","")) for result in formatted_results.values()]  # Convert percentage string to int
             print(probabilities)
-          
-
-            bar_colors = []
-            for i, pred in enumerate(predictions):
-                if labels[i] == "Clean" and pred == 1:
-                    bar_colors.append('green')  
-                elif pred == 1:
-                    bar_colors.append('red') 
-                else:
-                    bar_colors.append('green') 
-
-         
-            fig, ax = plt.subplots(figsize=(8, 5))  
-            bars = ax.barh(labels, probabilities, color=bar_colors, alpha=0.9, edgecolor='black')
-            for bar in bars:
-                ax.text(bar.get_width() + 2, bar.get_y() + bar.get_height() / 2,
-                        f"{bar.get_width()}%", va='center', fontsize=10, color='black', fontweight='bold')
-            ax.set_xlabel('Probability (%)', fontsize=12, fontweight='bold')
-            ax.set_ylabel('Labels', fontsize=12, fontweight='bold')
-            ax.set_title('Toxicity Predictions', fontsize=14, fontweight='bold', color='darkblue')
-            ax.grid(axis='x', linestyle='--', alpha=0.7)
-            st.subheader("Toxicity Predictions Distribution")
-            st.pyplot(fig)
-
-            st.subheader("Formatted Predictions")
-            prediction_df = pd.DataFrame(formatted_results).T
-            prediction_df.columns = ["Prediction", "Probability"]
-            prediction_df["Probability"] = prediction_df["Probability"].str.replace('%', '').astype(int)  # Convert to int for sorting
-            prediction_df = prediction_df.sort_values(by="Probability", ascending=False)
-            def color_coding(row):
-                return ['background-color:lightgray'] * len(
-                    row) if row.Prediction == 1 else ['background-color:white'] * len(row)
-            st.dataframe(prediction_df.style.apply(color_coding, axis=1),use_container_width=True)
-  
-
-            json_results = {label: {'Prediction': pred[0], 'Probability': pred[1]} for label, pred in formatted_results.items()}
-            with st.expander("Show Results in JSON", expanded=False):
-                st.json(json_results)
-
-            if explain_status==0:
-                st.subheader("LLM Explanation")
-                st.write(llm_explanation)
-            else:
-                st.subheader("LLM Explanation")
-                if explain_status==1:
-                    st.info(llm_explanation)
-                elif explain_status==3:
-                    st.markdown(f'<div style="background-color: #d4edda; color: #155724; padding: 10px; border-radius: 5px; border: 1px solid #c3e6cb;">{llm_explanation}</div>', unsafe_allow_html=True)
-                    
-        
-            if status==0:
-                wordcloud_path = generate_wordcloud(llm_extracted_words)
-                st.subheader("Word Cloud of Extracted Words")
-                st.image(wordcloud_path, caption="")
-            else:
-                st.subheader("Word Cloud of Extracted Words")
-                st.info(llm_extracted_words)
-
-
-            # st.title("Download Existing PDF")
-            # pdf_file_path = "mercury-CertificateCompletionReport.pdf"  
-            # with open(pdf_file_path, "rb") as pdf_file:
-            #     st.download_button(
-            #         label="Download PDF",
-            #         data=pdf_file,
-            #         file_name="Report.pdf", 
-            #         mime="application/pdf"
-            #     )
-
-        else:   
+        else:
             print("entering LSTM")
             prediction, predictions_prob = make_prediction(query)
             formatted_results = {labels[i]: [prediction[i], f"{int(predictions_prob[i] * 100)}%"] for i in range(len(labels))}
@@ -337,75 +289,78 @@ def main():
             probabilities = [int(result[1][:-1].replace("%","")) for result in formatted_results.values()]  # Convert percentage string to int
             print(probabilities)
 
-
-            bar_colors = []
-            for i, pred in enumerate(predictions):
-                if labels[i] == "Clean" and pred == 1:
-                    bar_colors.append('green')  
-                elif pred == 1:
-                    bar_colors.append('red') 
-                else:
-                    bar_colors.append('green') 
-
-         
-            fig, ax = plt.subplots(figsize=(8, 5))  
-            bars = ax.barh(labels, probabilities, color=bar_colors, alpha=0.9, edgecolor='black')
-            for bar in bars:
-                ax.text(bar.get_width() + 2, bar.get_y() + bar.get_height() / 2,
-                        f"{bar.get_width()}%", va='center', fontsize=10, color='black', fontweight='bold')
-            ax.set_xlabel('Probability (%)', fontsize=12, fontweight='bold')
-            ax.set_ylabel('Labels', fontsize=12, fontweight='bold')
-            ax.set_title('Toxicity Predictions', fontsize=14, fontweight='bold', color='darkblue')
-            ax.grid(axis='x', linestyle='--', alpha=0.7)
-            st.subheader("Toxicity Predictions Distribution")
-            st.pyplot(fig)
-
-            st.subheader("Formatted Predictions")
-            prediction_df = pd.DataFrame(formatted_results).T
-            prediction_df.columns = ["Prediction", "Probability"]
-            prediction_df["Probability"] = prediction_df["Probability"].str.replace('%', '').astype(int)  # Convert to int for sorting
-            prediction_df = prediction_df.sort_values(by="Probability", ascending=False)
-            def color_coding(row):
-                return ['background-color:lightgray'] * len(
-                    row) if row.Prediction == 1 else ['background-color:white'] * len(row)
-            st.dataframe(prediction_df.style.apply(color_coding, axis=1),use_container_width=True)
-  
-
-            json_results = {label: {'Prediction': pred[0], 'Probability': pred[1]} for label, pred in formatted_results.items()}
-            with st.expander("Show Results in JSON", expanded=False):
-                st.json(json_results)
-
-            if explain_status==0:
-                st.subheader("LLM Explanation")
-                st.write(llm_explanation)
+        bar_colors = []
+        for i, pred in enumerate(predictions):
+            if labels[i] == "Clean" and pred == 1:
+                bar_colors.append('green')  
+            elif pred == 1:
+                bar_colors.append('red') 
             else:
-                st.subheader("LLM Explanation")
-                if explain_status==1:
-                    st.info(llm_explanation)
-                elif explain_status==3:
-                    st.markdown(f'<div style="background-color: #d4edda; color: #155724; padding: 10px; border-radius: 5px; border: 1px solid #c3e6cb;">{llm_explanation}</div>', unsafe_allow_html=True)
-                    
+                bar_colors.append('green') 
+
         
+        fig, ax = plt.subplots(figsize=(8, 5))  
+        bars = ax.barh(labels, probabilities, color=bar_colors, alpha=0.9, edgecolor='black')
+        for bar in bars:
+            ax.text(bar.get_width() + 2, bar.get_y() + bar.get_height() / 2,
+                    f"{bar.get_width()}%", va='center', fontsize=10, color='black', fontweight='bold')
+        ax.set_xlabel('Probability (%)', fontsize=12, fontweight='bold')
+        ax.set_ylabel('Labels', fontsize=12, fontweight='bold')
+        ax.set_title('Toxicity Predictions', fontsize=14, fontweight='bold', color='darkblue')
+        ax.grid(axis='x', linestyle='--', alpha=0.7)
+        st.subheader("Toxicity Predictions Distribution")
+        st.pyplot(fig)
 
-            if status==0:
-                wordcloud_path = generate_wordcloud(llm_extracted_words)
-                st.subheader("Word Cloud of Extracted Words")
-                st.image(wordcloud_path, caption="")
-            else:
-                st.subheader("Word Cloud of Extracted Words")
-                st.info(llm_extracted_words)
+        st.subheader("Formatted Predictions")
+        prediction_df = pd.DataFrame(formatted_results).T
+        prediction_df.columns = ["Prediction", "Probability"]
+        prediction_df["Probability"] = prediction_df["Probability"].str.replace('%', '').astype(int)  # Convert to int for sorting
+        prediction_df = prediction_df.sort_values(by="Probability", ascending=False)
+        def color_coding(row):
+            return ['background-color:lightgray'] * len(
+                row) if row.Prediction == 1 else ['background-color:white'] * len(row)
+        st.dataframe(prediction_df.style.apply(color_coding, axis=1),use_container_width=True)
 
 
-            # st.title("Download Existing PDF")
-            # pdf_file_path = "mercury-CertificateCompletionReport.pdf"  
-            # with open(pdf_file_path, "rb") as pdf_file:
-            #     st.download_button(
-            #         label="Download PDF",
-            #         data=pdf_file,
-            #         file_name="Report.pdf", 
-            #         mime="application/pdf"
-            #     )
+        json_results = {label: {'Prediction': pred[0], 'Probability': pred[1]} for label, pred in formatted_results.items()}
+        with st.expander("Show Results in JSON", expanded=False):
+            st.json(json_results)
+
+        if explain_status==0:
+            st.subheader("LLM Explanation")
+            st.write(llm_explanation)
+        else:
+            st.subheader("LLM Explanation")
+            if explain_status==1:
+                st.info(llm_explanation)
+            elif explain_status==3:
+                st.markdown(f'<div style="background-color: #d4edda; color: #155724; padding: 10px; border-radius: 5px; border: 1px solid #c3e6cb;">{llm_explanation}</div>', unsafe_allow_html=True)
                 
+    
+        if status==0:
+            wordcloud_path = generate_wordcloud(llm_extracted_words)
+            st.subheader("Word Cloud of Extracted Words")
+            st.image(wordcloud_path, caption="")
+        else:
+            st.subheader("Word Cloud of Extracted Words")
+            st.info(llm_extracted_words)
 
+        wordcloud_keywords= llm_extracted_words if status==0 else []
+        llm_reason= llm_explanation if explain_status==0 or explain_status==3 else -1
+
+        new_entry={
+            "query":query,
+            "model_selected":selected_model,
+            "predictions":predictions,
+            "proabilities":probabilities,
+            "llm_explanation":llm_reason,
+            "wordcloud_keywords":wordcloud_keywords,
+            "feedback":"-1"
+        }
+
+        db_result=make_entry(new_entry)
+        print(db_result)
+
+     
 if __name__ == "__main__":
     main()
