@@ -52,15 +52,15 @@ file_path_data_key = 'service_account.json'
 with open(file_path_data_key, 'w') as json_file:
     json.dump(data_keys, json_file)
 
-# try:
-#     app = firebase_admin.get_app()
-#     print("yes")
-# except ValueError as e:
-cred = credentials.Certificate("service_account.json")  
-firebase_admin.initialize_app(cred, {
-    'storageBucket': 'toxicity-bbb88.appspot.com' 
-})
-print("no")
+try:
+    app = firebase_admin.get_app()
+    print("yes")
+except ValueError as e:
+    cred = credentials.Certificate("service_account.json")  
+    firebase_admin.initialize_app(cred, {
+        'storageBucket': 'toxicity-bbb88.appspot.com' 
+    })
+    print("no")
     
 nltk.download('stopwords')
 def remove_URL(text):
