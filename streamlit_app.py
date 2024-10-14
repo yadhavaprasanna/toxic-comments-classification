@@ -211,7 +211,7 @@ def generate_wordcloud(words):
     wordcloud.to_file(wordcloud_path) 
     return wordcloud_path
 
-def make_entry(new_entry):
+def make_entry(new_entry,id):
     bucket = storage.bucket()
     try:
         blob = bucket.blob("toxicity_db/toxicity_db.json")
@@ -358,7 +358,7 @@ def main():
             "feedback":"-1"
         }
 
-        db_result=make_entry(new_entry)
+        db_result=make_entry(new_entry,id)
         st.subheader(db_result)
 
      
