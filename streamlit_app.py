@@ -113,32 +113,37 @@ Make sure to focus solely on the relevant words associated with the provided lab
 Input Text:{}
 Predicted Label:{}"""
     print("inside extraction")
-    prompt=system_message.format(inputtext,labels)
-    response = model.generate_content(prompt,
-                                  safety_settings=[
-        {
-            "category": "HARM_CATEGORY_DANGEROUS",
-            "threshold": "BLOCK_NONE",
-        },
-        {
-            "category": "HARM_CATEGORY_HARASSMENT",
-            "threshold": "BLOCK_NONE",
-        },
-        {
-            "category": "HARM_CATEGORY_HATE_SPEECH",
-            "threshold": "BLOCK_NONE",
-        },
-        {
-            "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-            "threshold": "BLOCK_NONE",
-        },
-        {
-            "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
-            "threshold": "BLOCK_NONE",
-        },
-    ])
-    print("outside extraction")
-    return response.text
+    try:
+        prompt=system_message.format(inputtext,labels)
+        response = model.generate_content(prompt,
+                                      safety_settings=[
+            {
+                "category": "HARM_CATEGORY_DANGEROUS",
+                "threshold": "BLOCK_NONE",
+            },
+            {
+                "category": "HARM_CATEGORY_HARASSMENT",
+                "threshold": "BLOCK_NONE",
+            },
+            {
+                "category": "HARM_CATEGORY_HATE_SPEECH",
+                "threshold": "BLOCK_NONE",
+            },
+            {
+                "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                "threshold": "BLOCK_NONE",
+            },
+            {
+                "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+                "threshold": "BLOCK_NONE",
+            },
+        ])
+        print("outside extraction")
+        return response.text
+    except Exception as e:
+        print("")
+        return """We apologize for the inconvenience. There was an issue while communicating with the Google API for WordCloud. 
+              Please try again or retry after some time. Thank you for your understanding."""
 
 def gemini_explanation(inputtext,labels):
     # return "hi"
@@ -149,33 +154,38 @@ Explain Detailly
 Input Text:{}
 Predicted Label:{}
 """
-    print("inside explanation")
-    prompt=system_message.format(inputtext,labels)
-    response = model.generate_content(prompt,
-                                  safety_settings=[
-        {
-            "category": "HARM_CATEGORY_DANGEROUS",
-            "threshold": "BLOCK_NONE",
-        },
-        {
-            "category": "HARM_CATEGORY_HARASSMENT",
-            "threshold": "BLOCK_NONE",
-        },
-        {
-            "category": "HARM_CATEGORY_HATE_SPEECH",
-            "threshold": "BLOCK_NONE",
-        },
-        {
-            "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-            "threshold": "BLOCK_NONE",
-        },
-        {
-            "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
-            "threshold": "BLOCK_NONE",
-        },
-    ])
-    print("outside explanation")
-    return response.text
+    try:
+        print("inside explanation")
+        prompt=system_message.format(inputtext,labels)
+        response = model.generate_content(prompt,
+                                      safety_settings=[
+            {
+                "category": "HARM_CATEGORY_DANGEROUS",
+                "threshold": "BLOCK_NONE",
+            },
+            {
+                "category": "HARM_CATEGORY_HARASSMENT",
+                "threshold": "BLOCK_NONE",
+            },
+            {
+                "category": "HARM_CATEGORY_HATE_SPEECH",
+                "threshold": "BLOCK_NONE",
+            },
+            {
+                "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                "threshold": "BLOCK_NONE",
+            },
+            {
+                "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+                "threshold": "BLOCK_NONE",
+            },
+        ])
+        print("outside explanation")
+        return response.text
+    except Exception as e:
+        print("")
+        return """We apologize for the inconvenience. There was an issue while communicating with the Google API for LLM Explanation. 
+              Please try again or retry after some time. Thank you for your understanding."""
 
 def extract_words_llm(query, llm_labels, prediction):
     if 1 not in prediction:
