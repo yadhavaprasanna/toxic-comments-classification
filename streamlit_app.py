@@ -227,7 +227,7 @@ def make_entry(new_entry):
     except Exception as e:
         print("An error occurred: {e}")
         print("error in updating DB")
-        return "error in updating DB"
+        return e
 
 def main():
     id=random.randint(10000, 99999)     
