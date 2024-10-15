@@ -351,7 +351,7 @@ def main():
             "wordcloud_keywords":wordcloud_keywords
         }
 
-        db_result=update_db(new_entry)
+        db_result=upload_db(new_entry)
         st.subheader(db_result)
 
      
