@@ -13,4 +13,4 @@ detoxify
 demoji
 tensorflow
 numpy
-firebase_admin
+boto3
