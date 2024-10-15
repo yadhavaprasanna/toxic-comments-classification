@@ -342,7 +342,7 @@ def main():
         llm_reason= llm_explanation if explain_status==0 or explain_status==3 else -1
 
         new_entry={
-            "id":id,
+            "id":str(id),
             "query":query,
             "model_selected":selected_model,
             "predictions":predictions,
