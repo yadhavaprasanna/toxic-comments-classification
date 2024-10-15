@@ -205,7 +205,7 @@ def generate_wordcloud(words):
 def upload_db(item_to_store):
     aws_access_key_id = st.secrets["aws_access_key_id"]
     aws_secret_access_key = st.secrets["aws_secret_access_key"]
-    region_name = st.secrets["region_name]
+    region_name = st.secrets["region_name"]
 
     dynamodb = boto3.resource('dynamodb',
     aws_access_key_id=aws_access_key_id,
