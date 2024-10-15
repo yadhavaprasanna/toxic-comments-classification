@@ -340,7 +340,8 @@ def main():
 
         wordcloud_keywords= llm_extracted_words if status==0 else []
         llm_reason= llm_explanation if explain_status==0 or explain_status==3 else -1
-
+        
+        predictions = [int(x) for x in predictions]
         new_entry={
             "id":str(id),
             "query":query,
