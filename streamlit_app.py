@@ -19,6 +19,8 @@ from detoxify import Detoxify
 import google.generativeai as genai
 from google.generativeai.types import HarmCategory, HarmBlockThreshold
 import json
+import boto3
+from botocore.exceptions import ClientError
 # from dotenv import load_dotenv
 # load_dotenv()
 
@@ -200,23 +202,25 @@ def generate_wordcloud(words):
     wordcloud.to_file(wordcloud_path) 
     return wordcloud_path
 
-# def make_entry(new_entry,id):
-#     bucket = storage.bucket()
-#     try:
-#         blob = bucket.blob("toxicity_db.json")
-#         json_data = blob.download_as_text()
-#         data = json.loads(json_data) 
-#         if id not in data:
-#             data[id] = []  
-#         data[id].append(new_entry)
-#         json_data = json.dumps(data, indent=4)
-#         blob.upload_from_string(json_data, content_type='application/json')
-#         print("Values stored successfully in Firebase Storage as JSON!")
-#         return "Values stored successfully in Firebase Storage as JSON!"
-#     except Exception as e:
-#         print("An error occurred: {e}")
-#         print("error in updating DB")
-#         return e
+def upload_db(item_to_store):
+    aws_access_key_id = st.secrets["aws_access_key_id"]
+    aws_secret_access_key = st.secrets["aws_secret_access_key"]
+    region_name = st.secrets["region_name]
+
+    dynamodb = boto3.resource('dynamodb',
+    aws_access_key_id=aws_access_key_id,
+    aws_secret_access_key=aws_secret_access_key,
+    region_name=region_name)
+
+    table = dynamodb.Table("toxicity_database")
+    try:
+        response = table.put_item(Item=item_to_store)
+        print("PutItem succeeded:", response)
+        return "success"
+    except ClientError as e:
+        print("Failed to add item:", e.response['Error']['Message'])
+        return e.response['Error']['Message']
+        
 
 def main():
     id=random.randint(10000, 99999)     
@@ -338,17 +342,17 @@ def main():
         llm_reason= llm_explanation if explain_status==0 or explain_status==3 else -1
 
         new_entry={
+            "id":id,
             "query":query,
             "model_selected":selected_model,
             "predictions":predictions,
             "proabilities":probabilities,
             "llm_explanation":llm_reason,
-            "wordcloud_keywords":wordcloud_keywords,
-            "feedback":"-1"
+            "wordcloud_keywords":wordcloud_keywords
         }
 
-        # db_result=make_entry(new_entry,id)
-        # st.subheader(db_result)
+        db_result=update_db(new_entry)
+        st.subheader(db_result)
 
      
 if __name__ == "__main__":
