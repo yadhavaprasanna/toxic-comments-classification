@@ -345,10 +345,10 @@ def main():
             "id":str(id),
             "query":query,
             "model_selected":selected_model,
-            "predictions":list(predictions),
-            "proabilities":list(probabilities),
+            "predictions":predictions,
+            "proabilities":probabilities,
             "llm_explanation":llm_reason,
-            "wordcloud_keywords":list(wordcloud_keywords)
+            "wordcloud_keywords":wordcloud_keywords
         }
 
         db_result=upload_db(new_entry)
