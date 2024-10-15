@@ -352,7 +352,7 @@ def main():
         }
 
         db_result=upload_db(new_entry)
-        st.subheader(db_result)
+        # st.subheader(db_result)
 
      
 if __name__ == "__main__":
